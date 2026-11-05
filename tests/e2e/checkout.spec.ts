@@ -1,7 +1,6 @@
 import { test } from '@fixtures';
-import { products, customer } from '@data/products';
 
-test('user can complete a purchase @smoke', async ({ inventoryPage, cartPage, checkoutPage }) => {
+test('user can complete a purchase @smoke', async ({ inventoryPage, cartPage, checkoutPage, testData: { products, customer } }) => {
   await inventoryPage.goto();
   await inventoryPage.addToCart(products.backpack.name);
   await inventoryPage.addToCart(products.bikeLight.name);

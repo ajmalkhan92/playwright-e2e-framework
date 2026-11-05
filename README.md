@@ -22,10 +22,14 @@ npm run typecheck && npm run lint
 ```
 playwright.config.ts      projects, reporters, retries, artifacts
 src/
-  config/env.ts           typed env access (.env + process env)
-  pages/                  Page Objects (BasePage + one class per page)
-  fixtures/index.ts       extends `test` to inject page objects
-  data/                   static test data
+  config/env.ts           exports resolved `config` (via utils/configReader)
+  utils/jsonReader.ts     generic typed JSON file reader (cached)
+  utils/configReader.ts   layered config loader
+  pages/                  Page Objects (shared BasePage + one class per page)
+  fixtures/baseTest.ts    base test: config, testData, console-error capture
+  fixtures/index.ts       extends baseTest to inject page objects
+  data/                   static test data (*.json) + types
+config/                   default.json, <ENV>.json
 tests/
   setup/auth.setup.ts     logs in once, saves storageState
   e2e/*.spec.ts           specs: intent only, no selectors
@@ -85,15 +89,27 @@ future changes can revisit the reasoning rather than the result.
   of Playwright's default `data-testid`. When pointing at your own app, align this
   with your app's convention (preferably `data-testid`).
 
-### 6. Configuration and environments
-- **Chosen:** `src/config/env.ts` reads `.env` (via `dotenv`) with defaults; real
-  environment variables win, which is what CI sets. `.env` is git-ignored;
-  `.env.example` is committed.
-- **Alternatives:** one config file per environment; JSON config.
-- **Why:** The 12-factor approach needs no code change to target staging:
-  `BASE_URL=https://staging.example.com npm test`. Credentials come from env vars so
-  real secrets never live in the repo. (The Sauce Demo creds are public and used as
-  defaults only for this demo.)
+### 6. Configuration, file readers and environments
+- **Chosen:** layered config. `config/default.json` < `config/<ENV>.json` (selected with
+  `ENV=staging`) < environment variables / `.env` (e.g. `BASE_URL`, `USER_PASSWORD`).
+  `utils/configReader.ts` merges the layers (deep merge, undefined overrides ignored) into a
+  typed `AppConfig`. A missing `config/<ENV>.json` fails fast with a clear error.
+- **Generic JSON reader:** `utils/jsonReader.ts` `readJson<T>(path)` resolves from the project
+  root (not cwd), parses once, caches, and returns a clone so tests cannot mutate shared data.
+  Errors name the file and keep the original `cause`. Both config and test data use it.
+- **Alternatives:** one hard-coded env object; YAML; a config library (node-config, convict).
+- **Why JSON:** zero dependencies, typed via interfaces, diff-friendly. Schema validation
+  (zod) is a possible later step. Secrets stay out of committed JSON: use env vars in CI.
+  (Sauce Demo creds are public and committed only because this is a demo.)
+- **Why env vars still win:** CI can retarget with `BASE_URL=... npm test` with no file edits.
+
+### 6b. Base page and base test
+- **BasePage** holds only behaviour every page shares: `goto`, `reload`, `pageTitle`,
+  `expectUrl`, `expectOnPage` and a `byTestId` helper. Anything page-specific stays in the subclass.
+- **baseTest** (`fixtures/baseTest.ts`) is the framework-wide `test`: it provides `config`,
+  typed `testData`, and an auto `consoleErrors` fixture that attaches browser console/page
+  errors to the report when a test fails. `fixtures/index.ts` extends it with page objects, so
+  fixtures are layered (infrastructure first, pages second) and specs import one `test`.
 
 ### 7. Browser matrix and parallelism
 - Chromium, Firefox and WebKit run as projects, all `fullyParallel`. Each test gets
@@ -120,7 +136,7 @@ future changes can revisit the reasoning rather than the result.
 - HTML report always; GitHub annotations reporter added on CI.
 
 ### 11. Path aliases
-- `@pages/*`, `@fixtures`, `@config/*`, `@data/*` avoid `../../..` imports. Playwright
+- `@pages/*`, `@fixtures`, `@config/*`, `@data/*`, `@utils/*` avoid `../../..` imports. Playwright
   resolves `tsconfig` paths natively, so no extra tooling is needed.
 
 ### 12. Quality gates and CI

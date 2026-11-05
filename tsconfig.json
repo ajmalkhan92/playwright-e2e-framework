@@ -7,7 +7,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "paths": { "@pages/*": ["./src/pages/*"], "@fixtures": ["./src/fixtures/index.ts"], "@config/*": ["./src/config/*"], "@data/*": ["./src/data/*"] }
+    "paths": { "@pages/*": ["./src/pages/*"], "@fixtures": ["./src/fixtures/index.ts"], "@config/*": ["./src/config/*"], "@data/*": ["./src/data/*"], "@utils/*": ["./src/utils/*"] }
   },
   "include": ["src", "tests", "playwright.config.ts"]
 }

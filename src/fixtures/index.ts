@@ -1,4 +1,4 @@
-import { test as base, expect } from '@playwright/test';
+import { baseTest, expect } from './baseTest';
 import { LoginPage } from '@pages/LoginPage';
 import { InventoryPage } from '@pages/InventoryPage';
 import { CartPage } from '@pages/CartPage';
@@ -12,7 +12,7 @@ type Pages = {
 };
 
 /** Tests import `test`/`expect` from here, never from @playwright/test directly. */
-export const test = base.extend<Pages>({
+export const test = baseTest.extend<Pages>({
   loginPage: async ({ page }, use) => use(new LoginPage(page)),
   inventoryPage: async ({ page }, use) => use(new InventoryPage(page)),
   cartPage: async ({ page }, use) => use(new CartPage(page)),
